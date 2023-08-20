@@ -170,4 +170,9 @@ public class TranServiceImpl implements TranService {
         return tranList;
     }
 
+    public void updateStage(Tran tran, TranHistory tranHitsory) {
+        tranMapper.updateByPrimaryKeySelective(tran);
+        tranHistoryMapper.insertTranHistory(tranHitsory);
+    }
+
 }

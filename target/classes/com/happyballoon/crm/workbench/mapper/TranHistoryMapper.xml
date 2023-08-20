@@ -160,7 +160,7 @@
     from tbl_tran_history th
     join tbl_user u on u.id=th.create_by
     where th.tran_id=#{tranId}
-    order by th.create_time
+    order by th.create_time asc
   </select>
 
   <delete id="deleteTranHistoryByTranIds" parameterType="string">

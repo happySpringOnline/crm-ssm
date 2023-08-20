@@ -2,6 +2,7 @@ package com.happyballoon.crm.workbench.service;
 
 import com.happyballoon.crm.workbench.domain.FunnelVO;
 import com.happyballoon.crm.workbench.domain.Tran;
+import com.happyballoon.crm.workbench.domain.TranHistory;
 
 import java.util.List;
 import java.util.Map;
@@ -28,4 +29,5 @@ public interface TranService {
 
     List<Tran> queryTranListByCustomerId(String customerId);
 
+    void updateStage(Tran tran, TranHistory tranHitsory);
 }

@@ -5,6 +5,9 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java"%>
 <%
 String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+request.getContextPath()+"/";
+	Map<String,String> pMap = (Map<String, String>) application.getAttribute("pMap");
+
+	Set<String> set = pMap.keySet();
 %>
 <html>
 <head>
@@ -28,7 +31,16 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 
 <script type="text/javascript">
 
-
+	var json={
+		<%
+        for (String stage:set){
+        String possibility = pMap.get(stage);
+         %>
+		"<%=stage%>":<%=possibility%>,
+		<%
+        }
+        %>
+	}
 	//默认情况下取消和保存按钮是隐藏的
 	var cancelAndSaveBtnDefault = true;
 	
@@ -125,7 +137,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 			});
 		});
 
-		//【更新】
+		//【更新备注】
 		$("#updateRemarkBtn").click(function () {
 			//收集参数
 			var noteContent = $.trim($("#edit-noteContent").val());
@@ -159,7 +171,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 			});
 		});
 
-		//【删除】
+		//【删除备注】
 		$("#remarkListBody").on("click","a[name=deleteA]",function () {
 			if (confirm("确定删除选中的备注吗？")){
 				var id = $(this).attr("remarkId");
@@ -206,8 +218,130 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 
 
 	});
-	
-	
+
+
+	function changeStage(stage,i){
+		$.ajax({
+			url:"workbench/tran/changeStage.do",
+			data:{
+				"id":"${tran.id}",
+				"stage":stage,
+				"money":"${tran.money}",
+				"expectedDate":"${tran.expectedDate}"
+			},
+			dataType: "JSON",
+			type:"POST",
+			success:function (data) {
+				if(data.code=="1"){
+
+					//改变阶段成功后
+					//(1)需要在详细信息页上局部刷新 刷新阶段，可能性，修改人，修改时间
+					$("#tran-stage").html(data.retData.stage)
+					$("#tran-possibility").html(data.retData.possibility)
+					$("#tran-editBy").html(data.retData.editBy)
+					$("#tran-editTime").html(data.retData.editTime)
+
+					//(2)将所有的阶段图标重新判断，重新赋予样式及颜色
+					changeIcon(stage,i);
+
+					//(3)底部添加阶段历史
+					var html = "";
+					html += '<tr>';
+					html += '<td>'+data.retData.stage+'</td>';
+					html += '<td>'+data.retData.money+'</td>';
+					html += '<td>'+data.retData.expectedDate+'</td>';
+					html += '<td>'+data.retData.editTime+'</td>';
+					html += '<td>'+data.retData.editBy+'</td>';
+					html += '</tr>';
+
+					$("#tranHistoryList").append(html);
+				}else {
+					alert("变更交易失败！")
+				}
+			}
+		})
+	}
+	function changeIcon(stage,i) {
+		//当前阶段
+		var currentStage = stage;
+		//当前阶段可能性
+		var currentPossibility = json[currentStage];
+		//当前阶段的下标
+		var currentIndex = i-1;
+		//准备：前面正常阶段和后面丢失阶段的分界点下标
+		var point = 7;
+
+		//如果当前阶段的可能性为0 前七个一定是黑圈，后两个一个是红叉，一个是黑叉
+		if("0"==currentPossibility){
+			//遍历前七个
+			for (let i = 0; i < point; i++) {
+				//黑圈-----------------------
+				//移除掉原有的样式
+				$("#"+i).removeClass();
+				//添加新样式
+				$("#"+i).addClass("glyphicon glyphicon-record mystage");
+				$("#"+i).css("color","#000000");
+			}
+			//遍历后两个
+			for (let i = point; i < 9; i++) {
+				if(i==currentIndex){
+					//红叉------------------------
+					//移除掉原有的样式
+					$("#"+i).removeClass();
+					//添加新样式
+					$("#"+i).addClass("glyphicon glyphicon-remove mystage");
+					$("#"+i).css("color","#FF0000");
+
+				}else {
+					//黑叉------------------------
+					//移除掉原有的样式
+					$("#"+i).removeClass();
+					//添加新样式
+					$("#"+i).addClass("glyphicon glyphicon-remove mystage");
+					$("#"+i).css("color","#000000");
+				}
+			}
+
+			//如果当前阶段的可能性不为0 前七个绿圈，绿色标记，黑圈，后两个一定是黑叉
+		}else{
+			//遍历前七个
+			for (let i = 0; i < point; i++) {
+				if(i==currentIndex){
+					//绿标----------------------
+					//移除掉原有的样式
+					$("#"+i).removeClass();
+					//添加新样式
+					$("#"+i).addClass("glyphicon glyphicon-map-marker mystage");
+					$("#"+i).css("color","#90F790");
+				}else if(i<currentIndex){
+					//绿圈---------------------
+					//移除掉原有的样式
+					$("#"+i).removeClass();
+					//添加新样式
+					$("#"+i).addClass("glyphicon glyphicon-ok-circle mystage");
+					$("#"+i).css("color","#90F790");
+				}else {
+					//黑圈----------------------
+					//移除掉原有的样式
+					$("#"+i).removeClass();
+					//添加新样式
+					$("#"+i).addClass("glyphicon glyphicon-record mystage");
+					$("#"+i).css("color","#000000");
+				}
+			}
+			//遍历后两个
+			for (let i = point; i < 9; i++) {
+
+				//黑叉------------------------
+				//移除掉原有的样式
+				$("#"+i).removeClass();
+				//添加新样式
+				$("#"+i).addClass("glyphicon glyphicon-remove mystage");
+				$("#"+i).css("color","#000000")
+			}
+
+		}
+	}
 	
 </script>
 
@@ -264,22 +398,22 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 	<div style="position: relative; left: 40px; top: -50px;">
 		阶段&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 		<!--遍历stageList,依次显示每一个阶段对应的图标-->
-		<c:forEach items="${stageList}" var="stage">
+		<c:forEach items="${stageList}" var="stage" varStatus="stageStatus">
 			<!--如果stage就是交易所处阶段，则图标显示为map-marker,验证显示为绿色-->
 			<c:if test="${tran.stage==stage.value}">
-				<span class="glyphicon glyphicon-map-marker mystage" data-toggle="popover" data-content="${stage.value}" data-placement="bottom" style="color: #90F790;"></span>
+				<span id="${stageStatus.count-1}" class="glyphicon glyphicon-map-marker mystage" onclick="changeStage('${stage.value}','${stageStatus.count}')" data-toggle="popover" data-content="${stage.value}" data-placement="bottom" style="color: #90F790;"></span>
 				-----------
 			</c:if>
 
 			<!--如果stage处在交易所处阶段前边，则图标显示为ok-circle,颜色显示为绿色-->
 			<c:if test="${tran.orderNo > stage.orderNo}">
-				<span class="glyphicon glyphicon-ok-circle mystage" data-toggle="popover" data-placement="bottom" data-content="${stage.value}" style="color: #90F790;"></span>
+				<span id="${stageStatus.count-1}" class="glyphicon glyphicon-ok-circle mystage" onclick="changeStage('${stage.value}','${stageStatus.count}')" data-toggle="popover" data-placement="bottom" data-content="${stage.value}" style="color: #90F790;"></span>
 				-----------
 			</c:if>
 
 			<!--如果stage处在交易所处阶段后边，则图标显示为record,颜色显示为黑色-->
 			<c:if test="${tran.orderNo < stage.orderNo}">
-				<span class="glyphicon glyphicon-record mystage" data-toggle="popover" data-placement="bottom" data-content="${stage.value}"></span>
+				<span id="${stageStatus.count-1}" class="glyphicon glyphicon-record mystage" onclick="changeStage('${stage.value}','${stageStatus.count}')" data-toggle="popover" data-placement="bottom" data-content="${stage.value}"></span>
 				-----------
 			</c:if>
 		</c:forEach>
@@ -327,7 +461,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 			<div style="width: 300px; color: gray;">客户名称</div>
 			<div style="width: 300px;position: relative; left: 200px; top: -20px;"><b>${tran.customerId}</b></div>
 			<div style="width: 300px;position: relative; left: 450px; top: -40px; color: gray;">阶段</div>
-			<div style="width: 300px;position: relative; left: 650px; top: -60px;"><b>${tran.stage}</b></div>
+			<div style="width: 300px;position: relative; left: 650px; top: -60px;" ><b id="tran-stage">${tran.stage}</b></div>
 			<div style="height: 1px; width: 400px; background: #D5D5D5; position: relative; top: -60px;"></div>
 			<div style="height: 1px; width: 400px; background: #D5D5D5; position: relative; top: -60px; left: 450px;"></div>
 		</div>
@@ -335,7 +469,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 			<div style="width: 300px; color: gray;">类型</div>
 			<div style="width: 300px;position: relative; left: 200px; top: -20px;"><b>${tran.type}</b></div>
 			<div style="width: 300px;position: relative; left: 450px; top: -40px; color: gray;">可能性</div>
-			<div style="width: 300px;position: relative; left: 650px; top: -60px;"><b>${tran.possibility}</b></div>
+			<div style="width: 300px;position: relative; left: 650px; top: -60px;" ><b id="tran-possibility">${tran.possibility}</b></div>
 			<div style="height: 1px; width: 400px; background: #D5D5D5; position: relative; top: -60px;"></div>
 			<div style="height: 1px; width: 400px; background: #D5D5D5; position: relative; top: -60px; left: 450px;"></div>
 		</div>
@@ -359,7 +493,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 		</div>
 		<div style="position: relative; left: 40px; height: 30px; top: 70px;">
 			<div style="width: 300px; color: gray;">修改者</div>
-			<div style="width: 500px;position: relative; left: 200px; top: -20px;"><b>${tran.editBy}&nbsp;&nbsp;</b><small style="font-size: 10px; color: gray;">&nbsp;${tran.editTime}</small></div>
+			<div style="width: 500px;position: relative; left: 200px; top: -20px;"><b id="tran-editBy">${tran.editBy}&nbsp;&nbsp;</b><small style="font-size: 10px; color: gray;" id="tran-editTime">&nbsp;${tran.editTime}</small></div>
 			<div style="height: 1px; width: 550px; background: #D5D5D5; position: relative; top: -20px;"></div>
 		</div>
 		<div style="position: relative; left: 40px; height: 30px; top: 80px;">
@@ -441,7 +575,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 							<td>创建人</td>
 						</tr>
 					</thead>
-					<tbody>
+					<tbody id="tranHistoryList">
 						<c:forEach items="${tranHistories}" var="tranHistory">
 							<tr>
 								<td>${tranHistory.stage}</td>

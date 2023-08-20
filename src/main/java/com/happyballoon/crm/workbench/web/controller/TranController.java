@@ -246,5 +246,39 @@ public class TranController {
         return returnObject;
     }
 
+    @RequestMapping("/changeStage.do")
+    public @ResponseBody Object changeStage(Tran tran,HttpSession session){
+        User user = (User) session.getAttribute(Constants.SESSION_USER);
+        String editBy = user.getId();
+        String editTime = DateUtil.formateDateTime(new Date());
+        tran.setEditTime(editTime);
+        tran.setEditBy(editBy);
 
+        //交易更新后，生成一笔交易历史
+        TranHistory tranHistory = new TranHistory();
+        tranHistory.setId(UUIDUtil.getUUID());
+        tranHistory.setStage(tran.getStage());
+        tranHistory.setMoney(tran.getMoney());
+        tranHistory.setExpectedDate(tran.getExpectedDate());
+        tranHistory.setCreateBy(tran.getEditBy());
+        tranHistory.setCreateTime(DateUtil.formateDateTime(new Date()));
+        tranHistory.setTranId(tran.getId());
+
+        ReturnObject returnObject = new ReturnObject();
+        try{
+            tranService.updateStage(tran,tranHistory);
+
+            ResourceBundle bundle = ResourceBundle.getBundle("possibility");
+            String possibility = bundle.getString(tran.getStage());
+            tran.setPossibility(possibility);
+            tran.setEditBy(user.getName());
+
+            returnObject.setCode(Constants.RETURN_OBJECT_CODE_SUCCESS);
+            returnObject.setRetData(tran);
+        }catch (Exception e){
+            returnObject.setCode(Constants.RETURN_OBJECT_CODE_FAIL);
+            returnObject.setMessage("系统繁忙,请稍后重试..");
+        }
+        return returnObject;
+    }
 }
